@@ -113,4 +113,32 @@ export const Colors = {
     100: '#fffcf5',
     50: '#fffefc',
   },
+
+  shine: {
+    glow: '#0ea5e9',
+    glowStrong: '#0284c7',
+    glass: 'rgba(255,255,255,0.5)',
+    glassBorder: 'rgba(255,255,255,0.6)',
+    glassSolid: 'rgba(255,255,255,0.85)',
+  },
+
+  water: {
+    bg: '#eff6ff',
+    sphere: {
+      light: '#bfdbfe',
+      mid: '#3b82f6',
+      deep: '#1e3a8a',
+      highlight: '#ffffff',
+    },
+    sourcePotable: '#3b82f6',
+    sourceRain: '#06b6d4',
+    sourceResidual: '#a855f7',
+    sourceRecycled: '#10b981',
+  },
+
+  status: {
+    ok: '#10b981',
+    warn: '#f59e0b',
+    alert: '#ef4444',
+  },
 } as const

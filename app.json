@@ -12,7 +12,10 @@
       [
         "expo-asset",
         {
-          "assets": ["./src/assets/images"]
+          "assets": [
+            "./src/assets/images",
+            "./src/assets/data"
+          ]
         }
       ],
       [
@@ -37,7 +40,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.pm.cuantaagua",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "MGLMapboxAccessToken": "$(EXPO_PUBLIC_MAPBOX_TOKEN)"
       },
       "buildNumber": "1"
     },
@@ -47,7 +51,12 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.pm.cuantaagua",
-      "versionCode": 1
+      "versionCode": 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "extra": {
       "router": {

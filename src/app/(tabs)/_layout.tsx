@@ -23,13 +23,13 @@ export default function TabsLayout() {
         <Tabs.Screen
           name='index'
           options={{
-            title: 'Home',
+            title: 'Mapa',
           }}
         />
         <Tabs.Screen
-          name='profile'
+          name='settings'
           options={{
-            title: 'Profile',
+            title: 'Ajustes',
           }}
         />
       </Tabs>

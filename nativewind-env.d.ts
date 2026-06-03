@@ -8,3 +8,13 @@
 /// <reference types="@total-typescript/ts-reset/map-has" />
 /// <reference types="@total-typescript/ts-reset/promise-catch" />
 /// <reference types="@total-typescript/ts-reset/set-has" />
+
+declare module '*.geojson' {
+  const value: object
+  export default value
+}
+
+declare module '*.json' {
+  const value: object
+  export default value
+}
