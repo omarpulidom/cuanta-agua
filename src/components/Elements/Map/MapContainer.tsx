@@ -1,6 +1,4 @@
 import Mapbox, { Camera } from '@rnmapbox/maps'
-
-type MapPressEvent = GeoJSON.Feature<GeoJSON.Point, { screenPointX: number; screenPointY: number }>
 import { useEffect, useRef } from 'react'
 import { useLayerStore } from '@/store/useLayerStore'
 import { Constants } from '@/lib/Constants'
@@ -12,7 +10,10 @@ type MapContainerProps = {
   onSelectZone?: (
     codigoId: string,
     cp: string,
-    coordinates: [number, number],
+    center: [number, number],
+    tapCoord: [number, number],
+    coloniaNombre: string,
+    alcaldia: string,
   ) => void
   onCameraIdle?: (center: [number, number], zoom: number) => void
 }
@@ -36,26 +37,12 @@ export function MapContainer({
     initialConfig.current = false
   }, [])
 
-  const onMapPress = (e: MapPressEvent) => {
-    const feature = e
-    const props = feature.properties as
-      | Record<string, unknown>
-      | undefined
-    const codigoId = (props?.codigo_id as string | undefined) ?? feature.id?.toString()
-    const cp = props?.codigo as string | undefined
-    if (!codigoId || !cp) return
-
-    const pointCoords = feature.geometry?.coordinates
-    if (!pointCoords) return
-    const center: [number, number] = [pointCoords[0], pointCoords[1]]
-    onSelectZone?.(codigoId, cp, center)
-  }
+  void onCameraIdle
 
   return (
     <Mapbox.MapView
       style={{ flex: 1 }}
       styleURL={Constants.MAP_STYLE_URL}
-      onPress={onMapPress}
       logoEnabled={false}
       attributionEnabled={false}
       scaleBarEnabled={false}
@@ -77,6 +64,7 @@ export function MapContainer({
           data={colonias}
           selectedId={selectedId}
           active={true}
+          onSelectZone={onSelectZone}
         />
       )}
 
@@ -86,6 +74,7 @@ export function MapContainer({
           data={colonias}
           selectedId={selectedId}
           active={true}
+          onSelectZone={onSelectZone}
         />
       )}
 

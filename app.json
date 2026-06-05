@@ -12,10 +12,7 @@
       [
         "expo-asset",
         {
-          "assets": [
-            "./src/assets/images",
-            "./src/assets/data"
-          ]
+          "assets": ["./src/assets/images", "./src/assets/data"]
         }
       ],
       [
@@ -43,7 +40,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "MGLMapboxAccessToken": "$(EXPO_PUBLIC_MAPBOX_TOKEN)"
       },
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "appleTeamId": "C5TXZNQR66"
     },
     "android": {
       "adaptiveIcon": {

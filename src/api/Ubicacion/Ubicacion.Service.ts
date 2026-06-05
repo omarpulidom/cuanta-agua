@@ -54,6 +54,8 @@ function buildFeatureCollection(rows: ColoniaRow[]): GeoJsonFeatureCollection {
         colonia_nombre: r.colonia_nombre,
         municipio_nombre: r.municipio_nombre ?? '',
         municipio_id: r.municipio_id,
+        centro_lon: r.centro_lon,
+        centro_lat: r.centro_lat,
       },
     })
   }

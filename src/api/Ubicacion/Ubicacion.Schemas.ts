@@ -58,6 +58,8 @@ export const GeoJsonFeatureSchema = z.object({
     colonia_nombre: z.string(),
     municipio_nombre: z.string(),
     municipio_id: z.string(),
+    centro_lon: z.number().nullable().optional(),
+    centro_lat: z.number().nullable().optional(),
   }),
 })
 

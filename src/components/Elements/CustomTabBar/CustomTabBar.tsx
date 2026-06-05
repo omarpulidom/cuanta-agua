@@ -1,17 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import { BlurView } from 'expo-blur'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
-import { useEffect, useState } from 'react'
-import { LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import Animated, {
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import Animated, { FadeInUp } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Colors } from '@/components/colors'
-import { Springs, useHaptic } from '@/lib/animation'
+import { useHaptic } from '@/lib/animation'
 
 type TabConfig = {
   key: string
@@ -35,69 +29,8 @@ const TABS: TabConfig[] = [
   },
 ]
 
-function WaterDropIndicator({ x, y }: { x: number; y: number }) {
-  return (
-    <Animated.View
-      pointerEvents='none'
-      style={[
-        styles.dropIndicator,
-        {
-          left: x - 5,
-          top: y,
-        },
-      ]}
-    >
-      <View
-        style={{
-          width: 10,
-          height: 12,
-          borderRadius: 5,
-          backgroundColor: Colors.shine.glow,
-          shadowColor: Colors.shine.glow,
-          shadowOpacity: 1,
-          shadowRadius: 6,
-          shadowOffset: {
-            width: 0,
-            height: 0,
-          },
-        }}
-      />
-    </Animated.View>
-  )
-}
-
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const haptic = useHaptic()
-  const [containerWidth, setContainerWidth] = useState(0)
-  const indicatorX = useSharedValue(0)
-  const lastIndex = useSharedValue(state.index)
-
-  useEffect(() => {
-    if (containerWidth === 0) return
-    const segment = containerWidth / TABS.length
-    const target = segment * state.index + segment / 2 - 5
-    indicatorX.value = withSpring(target, Springs.bouncy)
-    if (lastIndex.value !== state.index) {
-      haptic.selection()
-    }
-    lastIndex.value = state.index
-  }, [
-    state.index,
-    containerWidth,
-    indicatorX,
-    lastIndex,
-    haptic,
-  ])
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: indicatorX.value },
-    ],
-  }))
-
-  const onLayout = (e: LayoutChangeEvent) => {
-    setContainerWidth(e.nativeEvent.layout.width)
-  }
 
   return (
     <SafeAreaView
@@ -112,10 +45,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         style={styles.wrap}
         pointerEvents='box-none'
       >
-        <View
-          style={styles.glassContainer}
-          onLayout={onLayout}
-        >
+        <View style={styles.glassContainer}>
           <BlurView
             intensity={40}
             tint='light'
@@ -134,6 +64,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                     canPreventDefault: true,
                   })
                   if (!isFocused && !event.defaultPrevented) {
+                    if (!isFocused) haptic.selection()
                     navigation.navigate(tab.key as never)
                   }
                 }}
@@ -168,39 +99,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               </TouchableOpacity>
             )
           })}
-
-          {containerWidth > 0 ? (
-            <Animated.View
-              pointerEvents='none'
-              style={[
-                styles.dropWrap,
-                indicatorStyle,
-              ]}
-            >
-              <View
-                style={{
-                  width: 10,
-                  height: 12,
-                  borderRadius: 5,
-                  backgroundColor: Colors.shine.glow,
-                  shadowColor: Colors.shine.glow,
-                  shadowOpacity: 1,
-                  shadowRadius: 8,
-                  shadowOffset: {
-                    width: 0,
-                    height: 0,
-                  },
-                }}
-              />
-            </Animated.View>
-          ) : null}
         </View>
       </Animated.View>
     </SafeAreaView>
   )
 }
-
-void WaterDropIndicator
 
 const styles = StyleSheet.create({
   wrap: {
@@ -253,16 +156,5 @@ const styles = StyleSheet.create({
   inactiveTab: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-  },
-  dropWrap: {
-    position: 'absolute',
-    bottom: 4,
-    width: 10,
-    height: 12,
-  },
-  dropIndicator: {
-    position: 'absolute',
-    width: 10,
-    height: 12,
   },
 })

@@ -12,6 +12,8 @@ type MapHeaderProps = {
     codigoId: string,
     cp: string,
     coordinates: [number, number],
+    coloniaNombre: string,
+    alcaldia: string,
   ) => void
 }
 
@@ -21,9 +23,9 @@ export function MapHeader({ onSelectSearchResult }: MapHeaderProps) {
   const [query, setQuery] = useState('')
   const { data: results } = UbicacionHooks.useSearchColonias(query)
 
-  const handleSelect = (codigoId: string, cp: string, centro_lon: number | null, centro_lat: number | null) => {
+  const handleSelect = (codigoId: string, cp: string, centro_lon: number | null, centro_lat: number | null, coloniaNombre: string, alcaldia: string) => {
     if (centro_lon == null || centro_lat == null) return
-    onSelectSearchResult?.(codigoId, cp, [centro_lon, centro_lat])
+    onSelectSearchResult?.(codigoId, cp, [centro_lon, centro_lat], coloniaNombre, alcaldia)
     setOpen(false)
     setQuery('')
   }
@@ -124,7 +126,7 @@ export function MapHeader({ onSelectSearchResult }: MapHeaderProps) {
                     key={r.codigo_id}
                     style={styles.resultItem}
                     onPress={() =>
-                      handleSelect(r.codigo_id, r.codigo, r.centro_lon, r.centro_lat)
+                      handleSelect(r.codigo_id, r.codigo, r.centro_lon, r.centro_lat, r.colonia_nombre, r.municipio_nombre ?? "")
                     }
                   >
                     <View>
