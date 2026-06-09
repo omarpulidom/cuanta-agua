@@ -634,7 +634,7 @@ function ResumenCard() {
         </Text>
       ) : (
         <View className='gap-2'>
-          {grouped.slice(0, 8).map((g) => (
+          {grouped.map((g) => (
             <View
               key={g.alcaldia}
               className='flex-row items-center justify-between'
