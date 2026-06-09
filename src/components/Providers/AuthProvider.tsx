@@ -18,6 +18,7 @@ import type {
 import { UsersService } from '@/api/Users/Users.Service'
 import { RedirectError } from '@/lib/Errors'
 import { useGlobalStore } from '@/store'
+import { clearSavedCredentials } from '@/lib/mmkv'
 
 const DEFAULT_LOGIN_ROUTE: Route = '/(auth)/login'
 
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(() => {
     logOutFromStore()
+    clearSavedCredentials()
     resetLoginMutation()
     setIsInitializing(false)
     router.replace('/(auth)/login')

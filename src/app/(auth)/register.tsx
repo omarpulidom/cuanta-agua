@@ -17,6 +17,7 @@ import { Colors } from '@/components/colors'
 import { useAuth } from '@/components/Providers/AuthProvider'
 import { UserRegisterRequestSchema } from '@/api/Users/Users.Schemas'
 import { extractErrorMessage } from '@/api/req'
+import { saveSavedCredentials } from '@/lib/mmkv'
 
 export default function Register() {
   const router = useRouter()
@@ -29,6 +30,7 @@ export default function Register() {
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
   const [confirmFocused, setConfirmFocused] = useState(false)
+  const [checked, setChecked] = useState(true)
 
   const canSubmit =
     email.trim().length > 0 && password.length > 0 && confirmPassword.length > 0 && !isLoggingIn
@@ -52,6 +54,9 @@ export default function Register() {
 
     try {
       await register(validation.data)
+      if (checked) {
+        saveSavedCredentials({ email: email.trim(), password })
+      }
       router.replace('/')
     } catch (error) {
       let message = 'No se pudo crear la cuenta. Intenta de nuevo.'
@@ -83,8 +88,22 @@ export default function Register() {
         >
           <View className='flex-1 px-6 pt-6 pb-8'>
             <Animated.View entering={FadeInDown.delay(200)} className='mt-8 items-center'>
-              <View className='h-40 w-40 bg-gray-200 rounded-full items-center justify-center'>
-                <Text className='text-gray-400 font-bold text-xl'>Logo</Text>
+              <View
+                className='items-center justify-center'
+                style={{
+                  width: 128,
+                  height: 128,
+                  borderRadius: 64,
+                  backgroundColor: 'rgba(14,165,233,0.12)',
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(14,165,233,0.35)',
+                  shadowColor: Colors.shine.glow,
+                  shadowOpacity: 0.35,
+                  shadowRadius: 18,
+                  shadowOffset: { width: 0, height: 6 },
+                }}
+              >
+                <Ionicons name='water' size={64} color={Colors.shine.glowStrong} />
               </View>
             </Animated.View>
             <View>
@@ -182,6 +201,22 @@ export default function Register() {
                       `}
                   />
                 </View>
+              </View>
+
+              <View className='flex-row items-center mt-4 gap-3 p-3'>
+                <TouchableOpacity
+                  onPress={() => setChecked((c) => !c)}
+                  className={`w-6 h-6 rounded border items-center justify-center ${
+                    checked ? 'bg-primary border-primary' : 'bg-gray-50 border-gray-300'
+                  }`}
+                >
+                  {checked && <Ionicons name='checkmark' size={14} color='white' />}
+                </TouchableOpacity>
+                <Text
+                  className={`text-sm font-medium ${checked ? 'text-secondary-900' : 'text-secondary-700'}`}
+                >
+                  Recordar sesión
+                </Text>
               </View>
 
               {formError ? (

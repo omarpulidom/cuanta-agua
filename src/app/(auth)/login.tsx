@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Colors } from '@/components/colors'
 import { useAuth } from '@/components/Providers/AuthProvider'
 import { extractErrorMessage } from '@/api/req'
+import {
+  clearSavedCredentials,
+  loadSavedCredentials,
+  saveSavedCredentials,
+} from '@/lib/mmkv'
 
 export default function Login() {
   const router = useRouter()
@@ -27,8 +32,23 @@ export default function Login() {
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
   const [checked, setChecked] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
 
-  const canSubmit = email.trim().length > 0 && password.trim().length > 0 && !isLoggingIn
+  // On mount, preload email + password from MMKV if the user previously
+  // asked us to remember them. Also pre-tick the box to make the
+  // affordance honest.
+  useEffect(() => {
+    const saved = loadSavedCredentials()
+    if (saved) {
+      setEmail(saved.email)
+      setPassword(saved.password)
+      setChecked(true)
+    }
+    setHydrated(true)
+  }, [])
+
+  const canSubmit =
+    hydrated && email.trim().length > 0 && password.trim().length > 0 && !isLoggingIn
 
   const handleTogglePassword = () => {
     setShowPassword((prev) => !prev)
@@ -48,6 +68,11 @@ export default function Login() {
         email: email.trim(),
         password,
       })
+      if (checked) {
+        saveSavedCredentials({ email: email.trim(), password })
+      } else {
+        clearSavedCredentials()
+      }
       router.replace('/')
     } catch (error) {
       let message = 'No se pudo iniciar sesión. Verifica tus credenciales.'
@@ -79,8 +104,22 @@ export default function Login() {
         >
           <View className='flex-1 px-6 pt-6 pb-8'>
             <Animated.View entering={FadeInDown.delay(200)} className='mt-8 items-center'>
-              <View className='h-40 w-40 bg-gray-200 rounded-full items-center justify-center'>
-                <Text className='text-gray-400 font-bold text-xl'>Logo</Text>
+              <View
+                className='items-center justify-center'
+                style={{
+                  width: 128,
+                  height: 128,
+                  borderRadius: 64,
+                  backgroundColor: 'rgba(14,165,233,0.12)',
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(14,165,233,0.35)',
+                  shadowColor: Colors.shine.glow,
+                  shadowOpacity: 0.35,
+                  shadowRadius: 18,
+                  shadowOffset: { width: 0, height: 6 },
+                }}
+              >
+                <Ionicons name='water' size={64} color={Colors.shine.glowStrong} />
               </View>
             </Animated.View>
             <View>
@@ -200,16 +239,6 @@ export default function Login() {
                 >
                   <Text className='text-sm font-medium text-primary'>Regístrate</Text>
                 </TouchableOpacity>
-              </View>
-            </Animated.View>
-            <Animated.View entering={FadeInDown.delay(400)} className='mt-auto pt-8'>
-              <View className='rounded-2xl bg-primary-100 p-5'>
-                <Text className='text-center text-xs leading-5 text-gray-600'>
-                  Al iniciar sesión, aceptas nuestros{' '}
-                  <Text className='text-primary underline'>Términos de Uso</Text> y{' '}
-                  <Text className='text-primary underline'>Política de Privacidad</Text>. Tus datos
-                  están protegidos bajo estrictas medidas de seguridad.
-                </Text>
               </View>
             </Animated.View>
             <View className='mt-auto pt-8 flex-row items-center justify-center gap-1'>
