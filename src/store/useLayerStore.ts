@@ -4,16 +4,20 @@ import { zustandMMKVStorage } from '@/lib/mmkv'
 import {
   createLayerSlice,
   type ActiveLayer,
+  type BimestreView,
   type LayerSlice,
   type Theme,
   type Units,
 } from './layer.store'
 
-export type { ActiveLayer, Theme, Units } from './layer.store'
+export type { ActiveLayer, BimestreView, Theme, Units } from './layer.store'
 
 const LAYER_STORE_NAME_PERSIST = 'zustand-layer-stores'
 
-type PersistedLayerState = Pick<LayerSlice, 'activeLayer' | 'units' | 'theme'>
+type PersistedLayerState = Pick<
+  LayerSlice,
+  'activeLayer' | 'units' | 'theme' | 'bimestreView'
+>
 
 export const useLayerStore = create<LayerSlice>()(
   persist(
@@ -28,10 +32,11 @@ export const useLayerStore = create<LayerSlice>()(
           activeLayer: state.activeLayer,
           units: state.units,
           theme: state.theme,
+          bimestreView: state.bimestreView,
         }
       },
     },
   ),
 )
 
-void ({} as ActiveLayer | Theme | Units)
+void ({} as ActiveLayer | Theme | Units | BimestreView)

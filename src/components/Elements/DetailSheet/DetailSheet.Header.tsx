@@ -11,7 +11,7 @@ import { WaterDrop } from '@/components/Elements/WaterSphere'
 import { BimestreSelector } from '@/components/Elements/BimestreSelector'
 import { INDICE_DES_COLORS, INDICE_DES_LABELS, type IndiceDes } from '@/api/IndiceDes/IndiceDes.Schemas'
 import type { Bimestre } from '@/lib/bimestre'
-import type { DisponibilidadStatus } from '@/lib/mockData'
+import type { DisponibilidadStatus } from '@/lib/disponibilidad'
 
 const AnimatedTextInput = Reanimated.createAnimatedComponent(TextInput)
 

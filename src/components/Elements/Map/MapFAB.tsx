@@ -7,7 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated'
-import { useLayerStore } from '@/store/useLayerStore'
+import { useLayerStore, type BimestreView } from '@/store/useLayerStore'
 import { Easings, useHaptic } from '@/lib/animation'
 import { Colors } from '@/components/colors'
 
@@ -15,9 +15,25 @@ type MapFABProps = {
   onPress?: () => void
 }
 
+const ORDER: BimestreView[] = [1, 2, 3, 'total']
+
+const SHORT_LABELS: Record<BimestreView, string> = {
+  1: 'B1',
+  2: 'B2',
+  3: 'B3',
+  total: 'Total',
+}
+
+const FULL_LABELS: Record<BimestreView, string> = {
+  1: 'Bimestre 1',
+  2: 'Bimestre 2',
+  3: 'Bimestre 3',
+  total: 'Suma de los 3 bimestres',
+}
+
 export function MapFAB({ onPress }: MapFABProps) {
-  const activeLayer = useLayerStore((s) => s.activeLayer)
-  const setActiveLayer = useLayerStore((s) => s.setActiveLayer)
+  const bimestreView = useLayerStore((s) => s.bimestreView)
+  const setBimestreView = useLayerStore((s) => s.setBimestreView)
   const haptic = useHaptic()
   const pulse = useSharedValue(0)
 
@@ -30,50 +46,34 @@ export function MapFAB({ onPress }: MapFABProps) {
       -1,
       true,
     )
-  }, [
-    pulse,
-  ])
+  }, [pulse])
 
   const glowStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: 1 + pulse.value * 0.25 },
-    ],
+    transform: [{ scale: 1 + pulse.value * 0.25 }],
     opacity: 0.4 + pulse.value * 0.3,
   }))
 
-  const cycleLayer = () => {
+  const cycleBimestre = () => {
     haptic.light()
-    const order: Array<'weather' | 'water' | 'both'> = ['both', 'weather', 'water']
-    const idx = order.indexOf(activeLayer)
-    setActiveLayer(order[(idx + 1) % order.length]!)
+    const idx = ORDER.indexOf(bimestreView)
+    const next = ORDER[(idx + 1) % ORDER.length]!
+    setBimestreView(next)
     onPress?.()
   }
 
-  const label = activeLayer === 'both' ? 'Ambas' : activeLayer === 'weather' ? 'Clima' : 'Agua'
-
   return (
     <View style={styles.wrap} pointerEvents='box-none'>
-      <Animated.View
-        pointerEvents='none'
-        style={[
-          styles.glow,
-          glowStyle,
-        ]}
-      />
+      <Animated.View pointerEvents='none' style={[styles.glow, glowStyle]} />
       <TouchableOpacity
-        onPress={cycleLayer}
+        onPress={cycleBimestre}
         activeOpacity={0.85}
         accessibilityRole='button'
-        accessibilityLabel={`Cambiar capa activa. Actual: ${label}`}
+        accessibilityLabel={`Cambiar bimestre. Actual: ${FULL_LABELS[bimestreView]}`}
         style={styles.fab}
       >
-        <Ionicons
-          name='layers-outline'
-          size={22}
-          color='white'
-        />
-        <Text className='font-montserrat-bold text-white text-[10px] mt-0.5'>
-          {label}
+        <Ionicons name='calendar-outline' size={20} color='white' />
+        <Text className='font-montserrat-extrabold text-white text-sm mt-0.5'>
+          {SHORT_LABELS[bimestreView]}
         </Text>
       </TouchableOpacity>
     </View>
