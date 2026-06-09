@@ -11,7 +11,7 @@ console.log({
 })
 
 const API_URLS = {
-  development: `http://${LOCAL_IP}:8080`,
+  development: `http://${LOCAL_IP}:8000`,
   qa: 'https://api.qa.example.com',
   production: 'https://api.example.com',
 } as const satisfies Record<typeof ENV, string>
@@ -29,16 +29,30 @@ if (!MAPBOX_TOKEN) {
 }
 
 export class Constants {
-  static API_PREFIX = '/v1'
   static ENV = process.env.NODE_ENV
   static IS_DEV = Constants.ENV === 'development'
   static BASE_URL = BASE_URL
-  static API_URL = `${Constants.BASE_URL}${Constants.API_PREFIX}`
+  static API_URL = BASE_URL
   static TIMEOUT = 60_000 // 60 seconds
-  static S3_BUCKET_URL = 'https://' // S3 bucket URL
+  static S3_BUCKET_URL = ''
 
   static ENDPOINTS = {
-    AUTH: '/auth',
+    AUTH_LOGIN: 'api/login',
+    AUTH_REGISTER: 'api/register',
+    CONSUMO: 'api/consumo',
+    CONSUMO_ALCALDIA: 'api/consumo/alcaldia',
+    CONSUMO_RESUMEN: 'api/consumo/resumen',
+    TOP_CONSUMO: 'api/top-consumo',
+    CORRELACION: 'api/correlacion',
+    UBICACIONES_ALCALDIAS: 'api/ubicaciones/alcaldias',
+    UBICACIONES_COLONIAS: 'api/ubicaciones/colonias',
+    ALCALDIAS: 'api/alcaldias',
+    COLONIAS: 'api/colonias',
+    INDICES: 'api/indices',
+    ANIOS: 'api/anios',
+    BIMESTRES: 'api/bimestres',
+    GEOJSON_ALCALDIAS: 'api/geojson/alcaldias',
+    HEALTH: 'api/health',
   } as const
 
   static MAPBOX_TOKEN = MAPBOX_TOKEN
@@ -51,8 +65,8 @@ export class Constants {
       -99.1332,
       19.4326,
     ] as [number, number],
-    zoomLevel: 4.5,
-    minZoomLevel: 2,
+    zoomLevel: 10.5,
+    minZoomLevel: 9,
     maxZoomLevel: 16,
   }
 }
