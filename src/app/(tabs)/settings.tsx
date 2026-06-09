@@ -1,26 +1,31 @@
 import { Ionicons } from '@expo/vector-icons'
+import { useColorScheme } from 'react-native'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '@/components/Providers/AuthProvider'
-import { useLayerStore, type ActiveLayer, type Theme, type Units } from '@/store/useLayerStore'
+import { useLayerStore, type BimestreView, type Theme } from '@/store/useLayerStore'
 import { useHaptic } from '@/lib/animation'
 import { Colors } from '@/components/colors'
 
-const LAYER_OPTIONS: Array<{ value: ActiveLayer; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = [
-  { value: 'both', label: 'Ambas', icon: 'layers' },
-  { value: 'weather', label: 'Clima', icon: 'cloud' },
-  { value: 'water', label: 'Agua', icon: 'water' },
+const BIMESTRE_VIEW_OPTIONS: Array<{
+  value: BimestreView
+  label: string
+  icon: React.ComponentProps<typeof Ionicons>['name']
+}> = [
+  { value: 1, label: 'Bimestre 1', icon: 'calendar-outline' },
+  { value: 2, label: 'Bimestre 2', icon: 'calendar-outline' },
+  { value: 3, label: 'Bimestre 3', icon: 'calendar-outline' },
+  { value: 'total', label: 'Suma de los 3 bimestres', icon: 'calendar' },
 ]
 
-const UNITS_OPTIONS: Array<{ value: Units; label: string }> = [
-  { value: 'metric', label: 'Litros (L)' },
-  { value: 'imperial', label: 'Galones (gal)' },
-]
-
-const THEME_OPTIONS: Array<{ value: Theme; label: string }> = [
-  { value: 'light', label: 'Claro' },
-  { value: 'dark', label: 'Oscuro' },
-  { value: 'auto', label: 'Auto' },
+const THEME_OPTIONS: Array<{
+  value: Theme
+  label: string
+  icon: React.ComponentProps<typeof Ionicons>['name']
+}> = [
+  { value: 'light', label: 'Claro', icon: 'sunny-outline' },
+  { value: 'dark', label: 'Oscuro', icon: 'moon-outline' },
+  { value: 'auto', label: 'Automático', icon: 'phone-portrait-outline' },
 ]
 
 function Section({
@@ -92,11 +97,7 @@ function OptionRow({
         </Text>
       </View>
       {active ? (
-        <Ionicons
-          name='checkmark-circle'
-          size={22}
-          color={Colors.shine.glow}
-        />
+        <Ionicons name='checkmark-circle' size={22} color={Colors.shine.glow} />
       ) : null}
     </TouchableOpacity>
   )
@@ -104,13 +105,15 @@ function OptionRow({
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth()
-  const activeLayer = useLayerStore((s) => s.activeLayer)
-  const setActiveLayer = useLayerStore((s) => s.setActiveLayer)
-  const units = useLayerStore((s) => s.units)
-  const setUnits = useLayerStore((s) => s.setUnits)
+  const bimestreView = useLayerStore((s) => s.bimestreView)
+  const setBimestreView = useLayerStore((s) => s.setBimestreView)
   const theme = useLayerStore((s) => s.theme)
   const setTheme = useLayerStore((s) => s.setTheme)
   const haptic = useHaptic()
+  const systemScheme = useColorScheme()
+
+  const effectiveScheme: 'light' | 'dark' =
+    theme === 'auto' ? (systemScheme === 'dark' ? 'dark' : 'light') : theme
 
   return (
     <SafeAreaView className='flex-1 bg-water-bg'>
@@ -130,20 +133,16 @@ export default function SettingsScreen() {
               shadowColor: Colors.shine.glow,
               shadowOpacity: 0.6,
               shadowRadius: 12,
-              shadowOffset: {
-                width: 0,
-                height: 0,
-              },
+              shadowOffset: { width: 0, height: 0 },
             }}
           >
             <Text className='font-montserrat-extrabold text-xl text-white'>
-              {user?.firstName?.[0] ?? 'U'}
-              {user?.lastName?.[0] ?? ''}
+              {(user?.email?.[0] ?? 'U').toUpperCase()}
             </Text>
           </View>
           <View className='flex-1'>
             <Text className='font-montserrat-extrabold text-2xl text-gray-900'>
-              Hola, {user?.firstName ?? 'invitado'}
+              Hola, {user?.email?.split('@')[0] ?? 'invitado'}
             </Text>
             <Text className='font-montserrat-light text-sm text-gray-500'>
               {user?.email ?? 'cuanta-agua@local'}
@@ -151,30 +150,16 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Section title='Mapa'>
-          {LAYER_OPTIONS.map((opt) => (
+        <Section title='Bimestre a mostrar'>
+          {BIMESTRE_VIEW_OPTIONS.map((opt) => (
             <OptionRow
-              key={opt.value}
-              active={activeLayer === opt.value}
+              key={String(opt.value)}
+              active={bimestreView === opt.value}
               label={opt.label}
               icon={opt.icon}
               onPress={() => {
                 haptic.selection()
-                setActiveLayer(opt.value)
-              }}
-            />
-          ))}
-        </Section>
-
-        <Section title='Unidades'>
-          {UNITS_OPTIONS.map((opt) => (
-            <OptionRow
-              key={opt.value}
-              active={units === opt.value}
-              label={opt.label}
-              onPress={() => {
-                haptic.selection()
-                setUnits(opt.value)
+                setBimestreView(opt.value)
               }}
             />
           ))}
@@ -186,12 +171,22 @@ export default function SettingsScreen() {
               key={opt.value}
               active={theme === opt.value}
               label={opt.label}
+              icon={opt.icon}
               onPress={() => {
                 haptic.selection()
                 setTheme(opt.value)
               }}
             />
           ))}
+          <View className='px-3 pb-2 pt-1'>
+            <Text className='font-montserrat-light text-[11px] text-gray-400'>
+              Modo actual:{' '}
+              <Text className='font-montserrat-semibold text-gray-600'>
+                {effectiveScheme === 'dark' ? 'Oscuro' : 'Claro'}
+              </Text>
+              {theme === 'auto' ? ' (sigue al sistema)' : ''}
+            </Text>
+          </View>
         </Section>
 
         <TouchableOpacity
@@ -207,10 +202,7 @@ export default function SettingsScreen() {
             shadowColor: Colors.shine.glow,
             shadowOpacity: 0.4,
             shadowRadius: 16,
-            shadowOffset: {
-              width: 0,
-              height: 6,
-            },
+            shadowOffset: { width: 0, height: 6 },
             elevation: 6,
           }}
         >
@@ -223,11 +215,7 @@ export default function SettingsScreen() {
               gap: 8,
             }}
           >
-            <Ionicons
-              name='log-out-outline'
-              size={20}
-              color='white'
-            />
+            <Ionicons name='log-out-outline' size={20} color='white' />
             <Text className='font-montserrat-bold text-base text-white'>
               Cerrar sesión
             </Text>
