@@ -13,7 +13,7 @@ console.log({
 const API_URLS = {
   development: `http://${LOCAL_IP}:8000`,
   qa: 'https://api.qa.example.com',
-  production: 'https://dw-cdmx-api.onrender.com',
+  production: 'https://data-warehouse-cdmx.onrender.com',
 } as const satisfies Record<typeof ENV, string>
 
 const BASE_URL = API_URLS[ENV]
