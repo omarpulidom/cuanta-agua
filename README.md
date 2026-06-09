@@ -27,6 +27,42 @@ Pensada para que un usuario pueda explorar, de un vistazo, cómo varía el consu
 
 Expo · React Native · TypeScript · Expo Router · NativeWind (Tailwind) · TanStack Query · Zustand · MMKV.
 
+## 🔌 Backend
+
+La app consume el backend FastAPI en `data_warehouse_cdmx/` (repo hermano). Las URLs se configuran en `src/lib/Constants.ts:13` según el ambiente (`EXPO_PUBLIC_API_ENV`):
+
+| ENV | URL |
+|---|---|
+| `development` | `http://<LOCAL_IP>:8000` |
+| `qa` | `https://api.qa.example.com` |
+| `production` | `https://dw-cdmx-api.onrender.com` |
+
+### Credenciales demo (backend en Render)
+
+```
+Email:    guest@guest.com
+Password: Guest001@
+```
+
+## 🛠️ Build local de la app (APK / IPA)
+
+Para generar los binarios localmente sin subirlos a stores:
+
+```bash
+# Login en EAS (solo la primera vez)
+eas login
+
+# Generar APK de Android
+eas build -e production -p android --local
+
+# Generar IPA de iOS
+eas build -e production -p ios --local
+```
+
+Los archivos generados quedan en la carpeta del build y los puedes distribuir por link directo o TestFlight.
+
+> **Nota**: en `production` la app apunta a `https://dw-cdmx-api.onrender.com`. Asegúrate de que el backend esté desplegado antes de generar el build.
+
 ## 👤 Autor
 
 Made with ❤️ by pm
