@@ -1,22 +1,13 @@
 import { z } from 'zod'
-import { generateClima, type ClimaRow } from '@/lib/mockData'
-import type { Bimestre } from '@/lib/bimestre'
 
-export const ClimaRowSchema = z.object({
-  id_fact_clima: z.number(),
-  id_tiempo: z.number(),
-  alcaldia: z.string(),
-  temp_maxima: z.number(),
-  temp_minima: z.number(),
+export const CorrelacionRowSchema = z.object({
+  anio: z.number().int(),
+  bimestre: z.number().int(),
+  total_agua: z.number(),
   temp_promedio: z.number(),
-  humedad_promedio: z.number(),
-  lluvia_total: z.number(),
+  dias_ola_calor: z.number().int(),
+  dias_frio: z.number().int(),
+  total_lluvia: z.number(),
 })
 
-export { type ClimaRow }
-
-export class ClimaService {
-  static getClima(alcaldia: string, bimestre: Bimestre, anio: number): ClimaRow {
-    return generateClima(alcaldia, bimestre, anio)
-  }
-}
+export type CorrelacionRow = z.infer<typeof CorrelacionRowSchema>

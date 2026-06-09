@@ -1,8 +1,13 @@
-import { ClimaService } from './Clima.Schemas'
-import type { Bimestre } from '@/lib/bimestre'
+import { z } from 'zod'
+import { Constants } from '@/lib/Constants'
+import { req } from '../req'
+import { CorrelacionRowSchema, type CorrelacionRow } from './Clima.Schemas'
 
-export class ClimaFacade {
-  static getClima(alcaldia: string, bimestre: Bimestre, anio: number) {
-    return ClimaService.getClima(alcaldia, bimestre, anio)
+export class ClimaService {
+  static async getCorrelacion(anio?: number): Promise<CorrelacionRow[]> {
+    const data = await req
+      .get(`${Constants.ENDPOINTS.CORRELACION}${anio ? `?anio=${anio}` : ''}`)
+      .json()
+    return z.array(CorrelacionRowSchema).parse(data)
   }
 }

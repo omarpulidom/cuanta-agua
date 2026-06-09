@@ -1,63 +1,92 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
-import type { ColoniaRow, GeoJsonFeatureCollection } from './Ubicacion.Schemas'
-import { UbicacionService } from './Ubicacion.Service'
+import { z } from 'zod'
+import { UbicacionService, type AlcaldiaRow, type GeoJsonFeatureCollection, type UbicacionQuery } from './Ubicacion.Service'
+import { ColoniaUbicacionRowSchema } from './Ubicacion.Schemas'
 
 export class UbicacionHooks {
   static KEYS = {
-    coloniasMap: ['ubicacion', 'colonias', 'map'] as const,
-    colonia: (codigoId: string) => ['ubicacion', 'colonia', codigoId] as const,
-    coloniasByCp: (cp: string) => ['ubicacion', 'colonias', 'cp', cp] as const,
-    search: (q: string) => ['ubicacion', 'search', q] as const,
-    alcaldias: ['ubicacion', 'alcaldias'] as const,
+    alcaldiasMap: (q: UbicacionQuery) =>
+      [
+        'ubicacion',
+        'alcaldias',
+        'map',
+        q.anio ?? null,
+        q.bimestre ?? null,
+        q.alcaldia ?? null,
+      ] as const,
+    coloniasMap: (q: UbicacionQuery) =>
+      [
+        'ubicacion',
+        'colonias',
+        'map',
+        q.anio ?? null,
+        q.bimestre ?? null,
+        q.alcaldia ?? null,
+      ] as const,
+    alcaldiasList: [
+      'ubicacion',
+      'alcaldias',
+      'list',
+    ] as const,
+    coloniasList: (alcaldia?: string) =>
+      [
+        'ubicacion',
+        'colonias',
+        'list',
+        alcaldia ?? null,
+      ] as const,
+    geojsonAlcaldias: [
+      'ubicacion',
+      'geojson',
+      'alcaldias',
+    ] as const,
+  }
+
+  static useAlcaldiasForMap(
+    q: UbicacionQuery = {},
+    options?: Omit<UseQueryOptions<AlcaldiaRow[]>, 'queryKey' | 'queryFn'>,
+  ) {
+    return useQuery({
+      queryKey: UbicacionHooks.KEYS.alcaldiasMap(q),
+      queryFn: () => UbicacionService.getAlcaldiasForMap(q),
+      staleTime: 5 * 60 * 1000,
+      ...options,
+    })
   }
 
   static useColoniasForMap(
-    options?: Omit<UseQueryOptions<GeoJsonFeatureCollection>, 'queryKey' | 'queryFn'>,
+    q: UbicacionQuery & { limit?: number } = {},
+    options?: Omit<UseQueryOptions<z.infer<typeof ColoniaUbicacionRowSchema>[]>, 'queryKey' | 'queryFn'>,
   ) {
     return useQuery({
-      queryKey: UbicacionHooks.KEYS.coloniasMap,
-      queryFn: () => UbicacionService.getColoniasForMap(),
-      staleTime: Infinity,
+      queryKey: UbicacionHooks.KEYS.coloniasMap(q),
+      queryFn: () => UbicacionService.getColoniasForMap(q),
+      staleTime: 5 * 60 * 1000,
       ...options,
     })
   }
 
-  static useColonia(
-    codigoId: string | null,
-    options?: Omit<UseQueryOptions<ColoniaRow | null>, 'queryKey' | 'queryFn'>,
-  ) {
+  static useAlcaldiasList() {
     return useQuery({
-      queryKey: codigoId ? UbicacionHooks.KEYS.colonia(codigoId) : ['ubicacion', 'colonia', 'none'],
-      queryFn: () => (codigoId ? UbicacionService.getColonia(codigoId) : null),
-      enabled: !!codigoId,
-      staleTime: Infinity,
-      ...options,
+      queryKey: UbicacionHooks.KEYS.alcaldiasList,
+      queryFn: () => UbicacionService.listAlcaldias(),
+      staleTime: 24 * 60 * 60 * 1000,
     })
   }
 
-  static useColoniasByCp(
-    cp: string | null,
-    options?: Omit<UseQueryOptions<ColoniaRow[]>, 'queryKey' | 'queryFn'>,
-  ) {
+  static useColoniasList(alcaldia?: string) {
     return useQuery({
-      queryKey: cp ? UbicacionHooks.KEYS.coloniasByCp(cp) : ['ubicacion', 'colonias', 'cp', 'none'],
-      queryFn: () => (cp ? UbicacionService.getColoniasPorCp(cp) : []),
-      enabled: !!cp,
-      staleTime: Infinity,
-      ...options,
+      queryKey: UbicacionHooks.KEYS.coloniasList(alcaldia),
+      queryFn: () => UbicacionService.listColonias(alcaldia),
+      staleTime: 24 * 60 * 60 * 1000,
     })
   }
 
-  static useSearchColonias(
-    query: string,
-    options?: Omit<UseQueryOptions<ColoniaRow[]>, 'queryKey' | 'queryFn'>,
-  ) {
+  static useAlcaldiasGeoJson() {
     return useQuery({
-      queryKey: UbicacionHooks.KEYS.search(query),
-      queryFn: () => UbicacionService.buscarColonias(query, 20),
-      enabled: query.trim().length >= 2,
-      staleTime: 60_000,
-      ...options,
+      queryKey: UbicacionHooks.KEYS.geojsonAlcaldias,
+      queryFn: () => UbicacionService.getAlcaldiasGeoJson(),
+      staleTime: Infinity,
     })
   }
 }

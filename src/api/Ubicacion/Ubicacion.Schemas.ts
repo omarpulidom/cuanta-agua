@@ -12,39 +12,36 @@ export const BboxSchema = z.object({
   max_lat: z.number(),
 })
 
-export const ColoniaRowSchema = z.object({
-  codigo_id: z.string(),
-  codigo: z.string(),
-  colonia_nombre: z.string(),
-  colonia_nombre_normalizado: z.string(),
-  tipo: z.string().nullable(),
-  ciudad: z.string().nullable(),
-  zona: z.string().nullable(),
-  estado_id: z.string(),
-  municipio_id: z.string(),
-  municipio_uid: z.string(),
-  municipio_nombre: z.string().nullable(),
-  municipio_nombre_normalizado: z.string().nullable(),
-  geometria: z.string().nullable(),
-  min_lon: z.number().nullable(),
-  min_lat: z.number().nullable(),
-  max_lon: z.number().nullable(),
-  max_lat: z.number().nullable(),
-  centro_lon: z.number().nullable(),
-  centro_lat: z.number().nullable(),
+export const AlcaldiaRowSchema = z.object({
+  alcaldia: z.string(),
+  lat: z.number().nullable(),
+  lon: z.number().nullable(),
+  consumo_total: z.number(),
+  consumo_prom: z.number(),
+  consumo_total_dom: z.number(),
+  consumo_prom_dom: z.number(),
+  consumo_total_mixto: z.number(),
+  consumo_prom_mixto: z.number(),
+  consumo_total_no_dom: z.number(),
+  consumo_prom_no_dom: z.number(),
+  num_colonias: z.number().int(),
+  num_registros: z.number().int(),
 })
 
-export type ColoniaRow = z.infer<typeof ColoniaRowSchema>
+export type AlcaldiaRow = z.infer<typeof AlcaldiaRowSchema>
 
-export const MunicipioRowSchema = z.object({
-  id: z.string(),
-  nombre: z.string(),
-  estado_id: z.string(),
-  municipio_uid: z.string(),
-  nombre_normalizado: z.string(),
+export const AlcaldiaNameSchema = z.string()
+
+export const ColoniaUbicacionRowSchema = z.object({
+  alcaldia: z.string(),
+  colonia: z.string(),
+  lat: z.number(),
+  lon: z.number(),
+  consumo_total: z.number(),
+  consumo_prom: z.number(),
 })
 
-export type MunicipioRow = z.infer<typeof MunicipioRowSchema>
+export type ColoniaUbicacionRow = z.infer<typeof ColoniaUbicacionRowSchema>
 
 export const GeoJsonFeatureSchema = z.object({
   type: z.literal('Feature'),
@@ -52,21 +49,22 @@ export const GeoJsonFeatureSchema = z.object({
     type: z.union([z.literal('Polygon'), z.literal('MultiPolygon')]),
     coordinates: z.array(z.unknown()),
   }),
-  properties: z.object({
-    codigo_id: z.string(),
-    codigo: z.string(),
-    colonia_nombre: z.string(),
-    municipio_nombre: z.string(),
-    municipio_id: z.string(),
-    centro_lon: z.number().nullable().optional(),
-    centro_lat: z.number().nullable().optional(),
-  }),
+  properties: z.record(z.string(), z.unknown()),
 })
 
 export const GeoJsonFeatureCollectionSchema = z.object({
   type: z.literal('FeatureCollection'),
   features: z.array(GeoJsonFeatureSchema),
+  crs: z.unknown().optional(),
 })
 
 export type GeoJsonFeature = z.infer<typeof GeoJsonFeatureSchema>
 export type GeoJsonFeatureCollection = z.infer<typeof GeoJsonFeatureCollectionSchema>
+export type AlcaldiaProperties = {
+  CVEGEO?: string
+  CVE_ENT?: string
+  CVE_MUN?: string
+  NOMGEO?: string
+  nomgeo?: string
+  alcaldia?: string
+}

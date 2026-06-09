@@ -1,39 +1,24 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
-import type { Bimestre } from '@/lib/bimestre'
-import type { ClimaRow } from './Clima.Schemas'
-import { ClimaFacade } from './Clima.Service'
+import { ClimaService } from './Clima.Service'
+import { type CorrelacionRow } from './Clima.Schemas'
 
 export class ClimaHooks {
   static KEYS = {
-    byAlcaldia: (alcaldia: string, bimestre: number, anio: number) =>
-      ['clima', 'alcaldia', alcaldia, bimestre, anio] as const,
+    correlacion: (anio?: number) => [
+      'clima',
+      'correlacion',
+      anio ?? null,
+    ] as const,
   }
 
-  static useClimaByAlcaldia(
-    alcaldia: string | null,
-    bimestre: Bimestre,
-    anio: number,
-    options?: Omit<UseQueryOptions<ClimaRow>, 'queryKey' | 'queryFn'>,
+  static useCorrelacion(
+    anio?: number,
+    options?: Omit<UseQueryOptions<CorrelacionRow[]>, 'queryKey' | 'queryFn'>,
   ) {
     return useQuery({
-      queryKey: alcaldia
-        ? ClimaHooks.KEYS.byAlcaldia(alcaldia, bimestre, anio)
-        : ['clima', 'none'],
-      queryFn: () =>
-        alcaldia
-          ? Promise.resolve(ClimaFacade.getClima(alcaldia, bimestre, anio))
-          : Promise.resolve({
-              id_fact_clima: 0,
-              id_tiempo: 0,
-              alcaldia: '',
-              temp_maxima: 0,
-              temp_minima: 0,
-              temp_promedio: 0,
-              humedad_promedio: 0,
-              lluvia_total: 0,
-            }),
-      enabled: !!alcaldia,
-      staleTime: Infinity,
+      queryKey: ClimaHooks.KEYS.correlacion(anio),
+      queryFn: () => ClimaService.getCorrelacion(anio),
+      staleTime: 5 * 60 * 1000,
       ...options,
     })
   }

@@ -1,25 +1,33 @@
-import { useQuery } from '@tanstack/react-query'
-import { TiempoFacade } from './Tiempo.Service'
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
+import { TiempoService } from './Tiempo.Service'
 
 export class TiempoHooks {
   static KEYS = {
-    current: ['tiempo', 'current'] as const,
+    anios: [
+      'tiempo',
+      'anios',
+    ] as const,
+    bimestres: [
+      'tiempo',
+      'bimestres',
+    ] as const,
   }
 
-  static useCurrentTiempo() {
+  static useAnios(options?: Omit<UseQueryOptions<number[]>, 'queryKey' | 'queryFn'>) {
     return useQuery({
-      queryKey: TiempoHooks.KEYS.current,
-      queryFn: () => TiempoFacade.getCurrent(),
-      staleTime: Infinity,
-      gcTime: Infinity,
+      queryKey: TiempoHooks.KEYS.anios,
+      queryFn: () => TiempoService.getAnios(),
+      staleTime: 24 * 60 * 60 * 1000,
+      ...options,
     })
   }
 
-  static useAnios() {
+  static useBimestres(options?: Omit<UseQueryOptions<number[]>, 'queryKey' | 'queryFn'>) {
     return useQuery({
-      queryKey: ['tiempo', 'anios'],
-      queryFn: () => TiempoFacade.getAnios(),
-      staleTime: Infinity,
+      queryKey: TiempoHooks.KEYS.bimestres,
+      queryFn: () => TiempoService.getBimestres(),
+      staleTime: 24 * 60 * 60 * 1000,
+      ...options,
     })
   }
 }

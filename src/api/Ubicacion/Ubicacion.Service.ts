@@ -1,68 +1,75 @@
+import { z } from 'zod'
+import { Constants } from '@/lib/Constants'
+import { req } from '../req'
 import {
-  type ColoniaRow,
+  AlcaldiaNameSchema,
+  AlcaldiaRowSchema,
+  ColoniaUbicacionRowSchema,
   GeoJsonFeatureCollectionSchema,
+  type AlcaldiaRow,
   type GeoJsonFeatureCollection,
 } from './Ubicacion.Schemas'
-import {
-  getAllColoniasForMap,
-  getColoniaByCodigoId,
-  getColoniasByCodigoPostal,
-  getMunicipios,
-  searchColonias,
-} from '@/api/db/queries'
+import type { Bimestre } from '@/lib/bimestre'
 
-export class UbicacionService {
-  static async getColoniasForMap(): Promise<GeoJsonFeatureCollection> {
-    const rows = await getAllColoniasForMap()
-    return buildFeatureCollection(rows)
-  }
+export type {
+  AlcaldiaRow,
+  GeoJsonFeatureCollection,
+  GeoJsonFeature,
+  AlcaldiaProperties,
+  ColoniaUbicacionRow,
+} from './Ubicacion.Schemas'
 
-  static async getColonia(codigoId: string): Promise<ColoniaRow | null> {
-    return getColoniaByCodigoId(codigoId)
-  }
-
-  static async getColoniasPorCp(cp: string): Promise<ColoniaRow[]> {
-    return getColoniasByCodigoPostal(cp)
-  }
-
-  static async buscarColonias(query: string, limit = 20): Promise<ColoniaRow[]> {
-    return searchColonias(query, limit)
-  }
-
-  static async getAlcaldias() {
-    return getMunicipios()
-  }
+export type UbicacionQuery = {
+  anio?: number
+  bimestre?: Bimestre
+  alcaldia?: string
 }
 
-function buildFeatureCollection(rows: ColoniaRow[]): GeoJsonFeatureCollection {
-  const features: GeoJsonFeatureCollection['features'] = []
+function buildQuery(q: UbicacionQuery): string {
+  const params = new URLSearchParams()
+  if (q.anio) params.set('anio', String(q.anio))
+  if (q.bimestre) params.set('bimestre', String(q.bimestre))
+  if (q.alcaldia) params.set('alcaldia', q.alcaldia)
+  const s = params.toString()
+  return s ? `?${s}` : ''
+}
 
-  for (const r of rows) {
-    if (!r.geometria) continue
-    let geometry: any
-    try {
-      geometry = JSON.parse(r.geometria)
-    } catch {
-      continue
-    }
-    features.push({
-      type: 'Feature',
-      geometry,
-      properties: {
-        codigo_id: r.codigo_id,
-        codigo: r.codigo,
-        colonia_nombre: r.colonia_nombre,
-        municipio_nombre: r.municipio_nombre ?? '',
-        municipio_id: r.municipio_id,
-        centro_lon: r.centro_lon,
-        centro_lat: r.centro_lat,
-      },
-    })
+export class UbicacionService {
+  static async getAlcaldiasForMap(q: UbicacionQuery = {}): Promise<AlcaldiaRow[]> {
+    const data = await req
+      .get(`${Constants.ENDPOINTS.UBICACIONES_ALCALDIAS}${buildQuery(q)}`)
+      .json()
+    return z.array(AlcaldiaRowSchema).parse(data)
   }
 
-  const fc: GeoJsonFeatureCollection = {
-    type: 'FeatureCollection',
-    features,
+  static async getColoniasForMap(
+    q: UbicacionQuery & { limit?: number } = {},
+  ): Promise<z.infer<typeof ColoniaUbicacionRowSchema>[]> {
+    const params = new URLSearchParams()
+    if (q.anio) params.set('anio', String(q.anio))
+    if (q.bimestre) params.set('bimestre', String(q.bimestre))
+    if (q.alcaldia) params.set('alcaldia', q.alcaldia)
+    if (q.limit) params.set('limit', String(q.limit))
+    const s = params.toString()
+    const data = await req
+      .get(`${Constants.ENDPOINTS.UBICACIONES_COLONIAS}${s ? `?${s}` : ''}`)
+      .json()
+    return z.array(ColoniaUbicacionRowSchema).parse(data)
   }
-  return GeoJsonFeatureCollectionSchema.parse(fc)
+
+  static async listAlcaldias(): Promise<string[]> {
+    const data = await req.get(Constants.ENDPOINTS.ALCALDIAS).json()
+    return z.array(AlcaldiaNameSchema).parse(data)
+  }
+
+  static async listColonias(alcaldia?: string): Promise<string[]> {
+    const q = alcaldia ? `?alcaldia=${encodeURIComponent(alcaldia)}` : ''
+    const data = await req.get(`${Constants.ENDPOINTS.COLONIAS}${q}`).json()
+    return z.array(z.string()).parse(data)
+  }
+
+  static async getAlcaldiasGeoJson(): Promise<GeoJsonFeatureCollection> {
+    const data = await req.get(Constants.ENDPOINTS.GEOJSON_ALCALDIAS).json()
+    return GeoJsonFeatureCollectionSchema.parse(data)
+  }
 }
