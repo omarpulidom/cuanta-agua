@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import type { Route } from 'expo-router'
 import { useRouter } from 'expo-router'
 import {
@@ -13,9 +12,8 @@ import {
 import { UsersHooks } from '@/api/Users/Users.Hooks'
 import type {
   BaseUser,
-  RefreshTokenResponse,
   UserLoginRequestBody,
-  UserLoginResponse,
+  UserRegisterRequestBody,
 } from '@/api/Users/Users.Schemas'
 import { UsersService } from '@/api/Users/Users.Service'
 import { RedirectError } from '@/lib/Errors'
@@ -31,20 +29,17 @@ type RequireAuthOptions = {
 type AuthContextValue = {
   user: BaseUser | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isInitializing: boolean
   isLoggingIn: boolean
   loginError: unknown
-  isRefreshing: boolean
-  isFetchingUser: boolean
-  login: (payload: UserLoginRequestBody) => Promise<UserLoginResponse['data']>
+  login: (payload: UserLoginRequestBody) => Promise<{ accessToken: string; user: BaseUser }>
+  register: (
+    payload: UserRegisterRequestBody,
+  ) => Promise<{ accessToken: string; user: BaseUser }>
   logout: () => void
-  refresh: () => Promise<RefreshTokenResponse['data'] | null>
-  fetchCurrentUser: () => Promise<BaseUser | null>
   requireAuth: (options?: RequireAuthOptions) => boolean
   userOrThrow: (options?: RequireAuthOptions) => BaseUser
-  mockLogin: () => void // DEV: Simulates an authenticated user without backend
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -53,20 +48,35 @@ type AuthProviderProps = {
   children: ReactNode
 }
 
+function decodeJwt(token: string): { exp?: number } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const payload = parts[1]
+    if (!payload) return null
+    const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4)
+    const json = atob(padded.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(json) as { exp?: number }
+  } catch {
+    return null
+  }
+}
+
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false
+  const payload = decodeJwt(token)
+  if (!payload?.exp) return true
+  return payload.exp * 1000 > Date.now()
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isInitializing, setIsInitializing] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const router = useRouter()
   const user = useGlobalStore((state) => state.auth.user)
   const accessToken = useGlobalStore((state) => state.auth.accessToken)
-  const refreshToken = useGlobalStore((state) => state.auth.refreshToken)
   const setUser = useGlobalStore((state) => state.auth.setUser)
-
   const setAccessToken = useGlobalStore((state) => state.auth.setAccessToken)
-  const setRefreshToken = useGlobalStore((state) => state.auth.setRefreshToken)
   const logOutFromStore = useGlobalStore((state) => state.auth.logOut)
-
-  const queryClient = useQueryClient()
 
   const {
     mutateAsync: loginRequest,
@@ -75,121 +85,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
     reset: resetLoginMutation,
   } = UsersHooks.useLogin()
 
-  const { refetch: refetchCurrentUser, isFetching: isFetchingUser } = UsersHooks.useMe({
-    enabled: false,
-    retry: 0,
-  })
+  const { mutateAsync: registerRequest } = UsersHooks.useRegister()
 
   const logout = useCallback(() => {
     logOutFromStore()
-    queryClient.clear()
     resetLoginMutation()
     setIsInitializing(false)
     router.replace('/(auth)/login')
-  }, [
-    logOutFromStore,
-    queryClient,
-    resetLoginMutation,
-    router,
-  ])
+  }, [logOutFromStore, resetLoginMutation, router])
 
   const login = useCallback(
     async (payload: UserLoginRequestBody) => {
-      const response = await loginRequest(payload)
-      const {
-        accessToken: nextAccessToken,
-        refreshToken: nextRefreshToken,
-        user: nextUser,
-      } = response.data
-
-      setAccessToken(nextAccessToken)
-      setRefreshToken(nextRefreshToken)
-      setUser(nextUser)
-      setIsInitializing(false)
-
-      return response.data
+      const data = await loginRequest(payload)
+      setAccessToken(data.access_token)
+      setUser(data.user)
+      return { accessToken: data.access_token, user: data.user }
     },
-    [
-      loginRequest,
-      setAccessToken,
-      setRefreshToken,
-      setUser,
-    ],
+    [loginRequest, setAccessToken, setUser],
   )
 
-  // DEV: Mock login to work without backend
-  const mockLogin = useCallback(() => {
-    const mockUser: BaseUser = {
-      id: 'mock-user-id',
-      firstName: 'User',
-      lastName: 'Test',
-      email: 'mock@example.com',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const register = useCallback(
+    async (payload: UserRegisterRequestBody) => {
+      const data = await registerRequest(payload)
+      setAccessToken(data.access_token)
+      setUser(data.user)
+      return { accessToken: data.access_token, user: data.user }
+    },
+    [registerRequest, setAccessToken, setUser],
+  )
+
+  useEffect(() => {
+    if (isTokenValid(accessToken) && user) {
+      setIsInitializing(false)
+      return
     }
 
-    console.log('🔧 DEV: Mock login activated')
-    setUser(mockUser)
-    setAccessToken(`mock-access-token-${Date.now()}`)
-    setRefreshToken(`mock-refresh-token-${Date.now()}`)
+    if (accessToken && !isTokenValid(accessToken)) {
+      logout()
+    }
+
     setIsInitializing(false)
-  }, [
-    setUser,
-    setAccessToken,
-    setRefreshToken,
-  ])
+  }, [accessToken, user, logout])
 
-  const fetchCurrentUser = useCallback(async () => {
-    if (!setUser) {
-      return null
-    }
-    console.log('Fetching current user...')
-    const result = await refetchCurrentUser()
-    if (result.error) {
-      console.log('Error fetching current user:', result.error)
-      throw result.error
-    }
-    const userData = result.data?.data ?? null
-    if (userData) {
-      console.log('Fetched current user:', userData)
-      setUser(userData)
-    }
-    return userData
-  }, [
-    refetchCurrentUser,
-    setUser,
-  ])
+  const requireAuth = useCallback(
+    (options: RequireAuthOptions = {}) => {
+      if (isInitializing) {
+        return false
+      }
 
-  const refresh = useCallback(async () => {
-    if (!setAccessToken) {
-      return null
-    }
-    if (!refreshToken) {
-      logout()
-      return null
-    }
+      if (!user || !isTokenValid(accessToken)) {
+        throw new RedirectError(
+          options.redirectTo ?? DEFAULT_LOGIN_ROUTE,
+          options.message ?? 'Please sign in to continue',
+        )
+      }
 
-    setIsRefreshing(true)
-    try {
-      const response = await UsersService.refreshToken(refreshToken)
-      const tokens = response.data
-
-      setAccessToken(tokens.accessToken)
-      console.log('Refreshed access token')
-
-      return tokens
-    } catch (error) {
-      console.warn('Unable to refresh access token', error)
-      logout()
-      return null
-    } finally {
-      setIsRefreshing(false)
-    }
-  }, [
-    refreshToken,
-    setAccessToken,
-    logout,
-  ])
+      return true
+    },
+    [user, isInitializing, accessToken],
+  )
 
   const userOrThrow = useCallback(
     (options: RequireAuthOptions = {}) => {
@@ -202,121 +156,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return user
     },
-    [
-      user,
-    ],
-  )
-
-  useEffect(() => {
-    let isMounted = true
-
-    const bootstrap = async () => {
-      if (!accessToken || !refreshToken) {
-        if (isMounted) {
-          setIsInitializing(false)
-        }
-        return
-      }
-
-      // DEV: If using mock tokens, skip backend validation
-      if (accessToken.startsWith('mock-access-token')) {
-        console.log('🔧 DEV: Mock token detected, skipping backend validation')
-        if (isMounted) {
-          setIsInitializing(false)
-        }
-        return
-      }
-
-      try {
-        await fetchCurrentUser()
-      } catch (error) {
-        try {
-          const tokens = await refresh()
-          if (!tokens) {
-            throw error
-          }
-          await fetchCurrentUser()
-        } catch (refreshError) {
-          logout()
-          console.warn('Failed to initialize auth context', refreshError)
-        }
-      } finally {
-        if (isMounted) {
-          setIsInitializing(false)
-        }
-      }
-    }
-
-    bootstrap()
-
-    return () => {
-      isMounted = false
-    }
-  }, [
-    accessToken,
-    refreshToken,
-    fetchCurrentUser,
-    refresh,
-    logout,
-  ])
-
-  const requireAuth = useCallback(
-    (options: RequireAuthOptions = {}) => {
-      if (isInitializing) {
-        return false
-      }
-
-      if (!user) {
-        throw new RedirectError(
-          options.redirectTo ?? DEFAULT_LOGIN_ROUTE,
-          options.message ?? 'Please sign in to continue',
-        )
-      }
-
-      return true
-    },
-    [
-      user,
-      isInitializing,
-    ],
+    [user],
   )
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       accessToken,
-      refreshToken,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user) && isTokenValid(accessToken),
       isInitializing,
       isLoggingIn,
       loginError,
-      isRefreshing,
-      isFetchingUser,
       login,
+      register,
       logout,
-      refresh,
-      fetchCurrentUser,
       requireAuth,
       userOrThrow,
-      mockLogin,
     }),
-    [
-      user,
-      accessToken,
-      refreshToken,
-      isInitializing,
-      isLoggingIn,
-      loginError,
-      isRefreshing,
-      isFetchingUser,
-      login,
-      logout,
-      refresh,
-      fetchCurrentUser,
-      requireAuth,
-      userOrThrow,
-      mockLogin,
-    ],
+    [user, accessToken, isInitializing, isLoggingIn, loginError, login, register, logout, requireAuth, userOrThrow],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -331,3 +188,6 @@ export function useAuth() {
 
   return context
 }
+
+// Keep references to avoid unused-imports when bundling
+void UsersService

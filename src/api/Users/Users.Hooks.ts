@@ -1,5 +1,5 @@
-import { type UseQueryOptions, useMutation, useQuery } from '@tanstack/react-query'
-import type { UserMeResponse } from './Users.Schemas'
+import { useMutation } from '@tanstack/react-query'
+import type { UserLoginRequestBody, UserRegisterRequestBody } from './Users.Schemas'
 import { UsersService } from './Users.Service'
 
 export class UsersHooks {
@@ -8,24 +8,23 @@ export class UsersHooks {
       'users',
       'login',
     ] as const,
-    me: [
+    register: [
       'users',
-      'me',
+      'register',
     ] as const,
   }
 
   static useLogin() {
     return useMutation({
       mutationKey: UsersHooks.KEYS.login,
-      mutationFn: UsersService.login,
+      mutationFn: (params: UserLoginRequestBody) => UsersService.login(params),
     })
   }
 
-  static useMe(options?: Omit<UseQueryOptions<UserMeResponse>, 'queryKey' | 'queryFn'>) {
-    return useQuery({
-      queryKey: UsersHooks.KEYS.me,
-      queryFn: UsersService.me,
-      ...options,
+  static useRegister() {
+    return useMutation({
+      mutationKey: UsersHooks.KEYS.register,
+      mutationFn: (params: UserRegisterRequestBody) => UsersService.register(params),
     })
   }
 }

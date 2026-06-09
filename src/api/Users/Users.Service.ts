@@ -1,45 +1,37 @@
 import { Constants } from '@/lib/Constants'
-import { createServiceHandler } from '../req'
+import { req } from '../req'
 import {
-  type RefreshTokenResponse,
-  RefreshTokenResponseSchema,
+  type AuthResponse,
+  AuthResponseSchema,
   type UserLoginRequestBody,
-  type UserLoginResponse,
-  UserLoginResponseSchema,
-  type UserMeResponse,
-  UserMeResponseSchema,
+  type UserRegisterRequestBody,
 } from './Users.Schemas'
 
-const UserNet = createServiceHandler(Constants.ENDPOINTS.AUTH)
-
 export class UsersService {
-  static async login(params: UserLoginRequestBody): Promise<UserLoginResponse> {
-    const data = await UserNet.post('login', {
-      json: {
-        email: params.email,
-        password: params.password,
-      },
-    }).json()
+  static async login(params: UserLoginRequestBody): Promise<AuthResponse> {
+    const data = await req
+      .post(Constants.ENDPOINTS.AUTH_LOGIN, {
+        json: {
+          email: params.email,
+          password: params.password,
+        },
+      })
+      .json()
 
-    return UserLoginResponseSchema.parse(data)
+    return AuthResponseSchema.parse(data)
   }
 
-  static async me(): Promise<UserMeResponse> {
-    const data = await UserNet.get('me').json()
+  static async register(params: UserRegisterRequestBody): Promise<AuthResponse> {
+    const data = await req
+      .post(Constants.ENDPOINTS.AUTH_REGISTER, {
+        json: {
+          email: params.email,
+          password: params.password,
+          confirm_password: params.confirmPassword,
+        },
+      })
+      .json()
 
-    return UserMeResponseSchema.parse(data)
-  }
-
-  static async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
-    const data = await UserNet.post('refresh', {
-      json: {
-        refreshToken,
-      },
-      headers: {
-        'Refresh-Token': refreshToken,
-      },
-    }).json()
-
-    return RefreshTokenResponseSchema.parse(data)
+    return AuthResponseSchema.parse(data)
   }
 }

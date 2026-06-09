@@ -1,64 +1,27 @@
 import ky from 'ky'
-import { RefreshTokenResponseSchema } from '@/api/Users/Users.Schemas'
-import { Constants, type ENDPOINTS } from '@/lib/Constants'
-import { queryClient } from '@/lib/qc'
+import { Constants } from '@/lib/Constants'
 import { useGlobalStore } from '@/store'
 
-const authHttp = ky.create({
-  prefixUrl: `${Constants.API_URL}${Constants.ENDPOINTS.AUTH}`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  throwHttpErrors: true,
-})
+const PUBLIC_PATHS = new Set<string>([
+  Constants.ENDPOINTS.AUTH_LOGIN,
+  Constants.ENDPOINTS.AUTH_REGISTER,
+])
 
-let refreshPromise: Promise<string | null> | null = null
-
-async function performTokenRefresh(): Promise<string | null> {
-  const store = useGlobalStore.getState()
-  const refreshToken = store.auth.refreshToken
-
-  if (!refreshToken) {
-    store.auth.logOut()
-    queryClient.clear()
-    return null
-  }
-
+function isPublicPath(url: string): boolean {
   try {
-    const response = await authHttp
-      .post('refreshToken', {
-        json: {
-          refreshToken,
-        },
-        headers: {
-          'Refresh-Token': refreshToken,
-        },
-      })
-      .json()
-
-    const parsed = RefreshTokenResponseSchema.parse(response)
-    const tokens = parsed.data
-
-    store.auth.setAccessToken(tokens.accessToken)
-    // store.auth.setRefreshToken(tokens.refreshToken)
-
-    return tokens.accessToken
-  } catch (error) {
-    console.warn('Failed to refresh access token', error)
-    store.auth.logOut()
-    queryClient.clear()
-    return null
+    const pathname = new URL(url, 'http://_').pathname
+    return PUBLIC_PATHS.has(pathname.replace(/^\/+/, ''))
+  } catch {
+    return false
   }
 }
 
-function refreshAccessToken(): Promise<string | null> {
-  if (!refreshPromise) {
-    refreshPromise = performTokenRefresh().finally(() => {
-      refreshPromise = null
-    })
+function handleUnauthorized(): void {
+  try {
+    useGlobalStore.getState().auth.logOut()
+  } catch {
+    // store may not be ready in edge cases
   }
-
-  return refreshPromise
 }
 
 export const req = ky.create({
@@ -69,61 +32,69 @@ export const req = ky.create({
   hooks: {
     beforeRequest: [
       async (request) => {
-        const globalState = useGlobalStore.getState()
-        const userToken = globalState.auth.accessToken
-        const refreshToken = globalState.auth.refreshToken
-        if (userToken) {
-          request.headers.set('Authorization', `Bearer ${userToken}`)
-        }
-        if (refreshToken) {
-          request.headers.set('Refresh-Token', refreshToken)
+        const accessToken = useGlobalStore.getState().auth.accessToken
+        if (accessToken) {
+          request.headers.set('Authorization', `Bearer ${accessToken}`)
         }
         return request
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
-        if (response.status !== 401) {
-          return response
+      async (request, _options, response) => {
+        if (response.status === 401 && !isPublicPath(request.url)) {
+          handleUnauthorized()
         }
-
-        const requestUrl = new URL(request.url)
-        const isAuthLogin = requestUrl.pathname.endsWith('/auth/login')
-        const isAuthRefresh = requestUrl.pathname.endsWith('/auth/refreshToken')
-
-        if (isAuthLogin || isAuthRefresh) {
-          return response
-        }
-
-        if (request.headers.get('X-Auth-Retry') === '1') {
-          return response
-        }
-
-        const accessToken = await refreshAccessToken()
-
-        if (!accessToken) {
-          return response
-        }
-
-        const headers = new Headers(options.headers)
-        headers.set('Authorization', `Bearer ${accessToken}`)
-        headers.set('X-Auth-Retry', '1')
-
-        return req(request, {
-          ...options,
-          headers,
-        })
+        return response
       },
     ],
   },
   throwHttpErrors: true,
 })
 
-export function createServiceHandler(endpoint: ENDPOINTS) {
+export function createServiceHandler(endpoint: string) {
   return req.extend((parentOptions) => {
     return {
       ...parentOptions,
       prefixUrl: `${parentOptions.prefixUrl}${endpoint}`,
     }
   })
+}
+
+type BackendErrorBody =
+  | { detail: string }
+  | {
+      detail: Array<{
+        msg: string
+        loc?: Array<string | number>
+        type?: string
+      }>
+    }
+
+/**
+ * Reads the human-readable error message from a ky `HTTPError` (FastAPI).
+ * FastAPI uses two error shapes:
+ *   - 4xx/5xx with string detail: { "detail": "El correo ya está registrado" }
+ *   - 422 validation: { "detail": [{ "msg": "String should ...", "loc": [...] }] }
+ * Returns null when the body cannot be parsed, so callers can fall back.
+ */
+export async function extractErrorMessage(error: unknown): Promise<string | null> {
+  if (!error || typeof error !== 'object') return null
+
+  const maybeResponse = (error as { response?: Response }).response
+  if (!maybeResponse) return null
+
+  try {
+    const body = (await maybeResponse.clone().json()) as BackendErrorBody
+    if (typeof body?.detail === 'string') return body.detail
+    if (Array.isArray(body?.detail) && body.detail.length > 0) {
+      const first = body.detail[0]
+      const msg = first?.msg
+      const loc = Array.isArray(first?.loc) ? first.loc.filter((p) => p !== 'body') : []
+      if (loc.length > 0 && msg) return `${loc.join('.')}: ${msg}`
+      return msg ?? null
+    }
+    return null
+  } catch {
+    return null
+  }
 }

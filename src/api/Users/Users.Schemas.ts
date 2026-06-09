@@ -1,41 +1,48 @@
 import z from 'zod'
-import { CreateResponseSchema, CreateSchemaWithId } from '../req.helpers'
 
-export const BaseUserSchema = CreateSchemaWithId({
-  firstName: z.string(),
-  lastName: z.string(),
+// Exact success shape returned by /api/login and /api/register.
+// See data_warehouse_cdmx/main.py: { message, access_token, token_type, user }
+export const BaseUserSchema = z.object({
+  id: z.number().int(),
   email: z.email(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
 })
 
 export type BaseUser = z.infer<typeof BaseUserSchema>
+
+export const AuthResponseSchema = z.object({
+  message: z.string().optional(),
+  access_token: z.string(),
+  token_type: z.string().optional(),
+  user: BaseUserSchema,
+})
+
+export type AuthResponse = z.infer<typeof AuthResponseSchema>
 
 export type UserLoginRequestBody = {
   email: string
   password: string
 }
 
-export const WithAccessTokens = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string(),
+export type UserRegisterRequestBody = {
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+// Client-side validation matching main.py's RegisterRequest rules:
+// - email is a valid email
+// - password length >= 8 and <= 128
+// - password has at least one uppercase, one lowercase and one digit
+const passwordSchema = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .max(128, 'La contraseña es demasiado larga')
+  .refine((v) => /[A-Z]/.test(v), 'La contraseña debe incluir al menos una mayúscula')
+  .refine((v) => /[a-z]/.test(v), 'La contraseña debe incluir al menos una minúscula')
+  .refine((v) => /\d/.test(v), 'La contraseña debe incluir al menos un número')
+
+export const UserRegisterRequestSchema = z.object({
+  email: z.email('Correo inválido'),
+  password: passwordSchema,
+  confirmPassword: passwordSchema,
 })
-
-export const UserLoginResponseSchema = CreateResponseSchema(
-  WithAccessTokens.extend({
-    user: BaseUserSchema,
-  }),
-)
-
-export const UserMeResponseSchema = CreateResponseSchema(BaseUserSchema)
-
-export const RefreshTokenResponseSchema = CreateResponseSchema(
-  WithAccessTokens.omit({
-    refreshToken: true,
-  }),
-)
-
-export type AuthTokens = z.infer<typeof WithAccessTokens>
-export type UserLoginResponse = z.infer<typeof UserLoginResponseSchema>
-export type UserMeResponse = z.infer<typeof UserMeResponseSchema>
-export type RefreshTokenResponse = z.infer<typeof RefreshTokenResponseSchema>

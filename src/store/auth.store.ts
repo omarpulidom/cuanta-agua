@@ -3,21 +3,19 @@ import type { GlobalTypedStateCreator } from './types'
 
 type AuthState = {
   user: BaseUser | null
-  refreshToken: string | null
   accessToken: string | null
 }
 
 type StateActions = {
   setUser: (user: BaseUser) => void
-  setRefreshToken: (refreshToken: string) => void
   setAccessToken: (accessToken: string) => void
 
   resetUserState: () => void
   logOut: () => void
 }
+
 const initialState: AuthState = {
   user: null,
-  refreshToken: null,
   accessToken: null,
 }
 
@@ -75,26 +73,12 @@ export const createAuthSlice: GlobalTypedStateCreator<AuthSlice> = (set) => ({
         },
       }
     }),
-  setRefreshToken: (refreshToken) =>
-    set((state) => {
-      if (state.auth.refreshToken === refreshToken) {
-        return state
-      }
-
-      return {
-        auth: {
-          ...state.auth,
-          refreshToken,
-        },
-      }
-    }),
   logOut: () =>
     set((state) => ({
       auth: {
         ...state.auth,
         user: null,
         accessToken: null,
-        refreshToken: null,
       },
     })),
 })
