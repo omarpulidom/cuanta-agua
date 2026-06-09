@@ -22,6 +22,12 @@ const TABS: TabConfig[] = [
     outlineIcon: 'water-outline',
   },
   {
+    key: 'dashboard',
+    label: 'Dashboard',
+    icon: 'analytics',
+    outlineIcon: 'analytics-outline',
+  },
+  {
     key: 'settings',
     label: 'Ajustes',
     icon: 'settings',
